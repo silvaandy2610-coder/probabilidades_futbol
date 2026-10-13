@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Probabilidades de fútbol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EEF1EC;
+  --surface: #FFFFFF;
+  --ink: #14201A;
+  --muted: #5B6A61;
+  --line: #D3DAD2;
+  --home: #1F6B4A;
+  --away: #2B59C3;
+  --draw: #9AA59E;
+  --accent: #E8A300;
+  --heat-rgb: 31,107,74;
+  --pitch: #123626;
+  --pitch-ink: #EAF2EC;
+  --warn-bg: #FFF3D6;
+  --warn-ink: #5E4300;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1713;
+    --surface: #16231C;
+    --ink: #E7EFE9;
+    --muted: #9FB1A6;
+    --line: #2A3B31;
+    --home: #4FBF8A;
+    --away: #7AA2FF;
+    --draw: #6B7A71;
+    --heat-rgb: 79,191,138;
+    --pitch: #0A241A;
+    --warn-bg: #3A2E0E;
+    --warn-ink: #F4D88A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1713; --surface: #16231C; --ink: #E7EFE9; --muted: #9FB1A6; --line: #2A3B31;
+  --home: #4FBF8A; --away: #7AA2FF; --draw: #6B7A71; --heat-rgb: 79,191,138; --pitch: #0A241A;
+  --warn-bg: #3A2E0E; --warn-ink: #F4D88A; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.display { font-family: "Barlow Condensed", "Arial Narrow", Impact, sans-serif; font-weight: 700; letter-spacing: 0.01em; }
+
+header.top { background: var(--pitch); color: var(--pitch-ink); padding: 22px 20px 0; }
+.wrap { max-width: 1040px; margin: 0 auto; }
+header.top h1 { margin: 0; font-size: clamp(30px, 6vw, 46px); line-height: 1.05; }
+header.top p { margin: 6px 0 18px; color: #B9CCBF; max-width: 56ch; }
+.tabs { display: flex; gap: 4px; }
+.tab {
+  appearance: none; border: 0; cursor: pointer;
+  font: 600 22px/1 "Barlow Condensed", "Arial Narrow", sans-serif;
+  padding: 12px 22px 11px;
+  background: transparent; color: #B9CCBF;
+  border-radius: 8px 8px 0 0;
+}
+.tab[aria-selected="true"] { background: var(--bg); color: var(--ink); }
+.tab:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+main { padding: 22px 20px 48px; }
+.layout { display: grid; gap: 18px; grid-template-columns: 1fr; }
+@media (min-width: 880px) { .layout { grid-template-columns: 330px 1fr; align-items: start; } }
+
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.box h2 { margin: 0 0 4px; font-size: 24px; }
+.hint { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+.step { margin-top: 16px; }
+.label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+
+button.btn, label.btn {
+  display: inline-block; appearance: none; cursor: pointer;
+  font: 600 15px/1 "Barlow", system-ui, sans-serif;
+  padding: 11px 14px; border-radius: 8px;
+  border: 1px solid var(--home); background: var(--home); color: #fff; text-align: center;
+}
+:root[data-theme="dark"] button.btn.primary, :root[data-theme="dark"] label.btn.primary { color: #08140E; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #08140E; } }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
+
+select, input[type=checkbox] { font: inherit; }
+select {
+  width: 100%; padding: 10px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+.checkrow { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 15px; }
+.checkrow input { width: 18px; height: 18px; accent-color: var(--home); }
+
+.files { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+.files li {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px;
+}
+.files .name { overflow-wrap: anywhere; }
+.files .count { color: var(--muted); white-space: nowrap; }
+.files button { appearance: none; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; }
+.msg { margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14px; }
+.msg[hidden] { display: none; }
+
+.empty { text-align: center; padding: 48px 16px; color: var(--muted); }
+.empty .display { font-size: 28px; color: var(--ink); margin-bottom: 6px; }
+
+/* Marcador */
+.board {
+  background: var(--pitch); color: var(--pitch-ink);
+  border-radius: 10px; padding: 20px 16px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+}
+.board .team { font-size: clamp(22px, 4.6vw, 36px); line-height: 1.05; overflow-wrap: anywhere; }
+.board .team.home { text-align: right; }
+.board .team.away { text-align: left; }
+.board .xg { text-align: center; }
+.board .xg .nums { font-size: clamp(34px, 8vw, 60px); line-height: 1; color: var(--accent); white-space: nowrap; }
+.board .xg .cap { font-size: 12px; color: #B9CCBF; margin-top: 4px; }
+.board .sub { font-size: 13px; color: #B9CCBF; font-family: "Barlow", sans-serif; font-weight: 400; margin-top: 6px; letter-spacing: 0; }
+
+.results { display: grid; gap: 14px; }
+.stack { display: flex; height: 44px; border-radius: 8px; overflow: hidden; margin: 12px 0 10px; }
+.stack div { display: flex; align-items: center; justify-content: center; color: #fff; font: 700 20px/1 "Barlow Condensed", sans-serif; min-width: 0; }
+.seg-home { background: var(--home); }
+.seg-draw { background: var(--draw); }
+.seg-away { background: var(--away); }
+:root[data-theme="dark"] .stack div { color: #08140E; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .stack div { color: #08140E; } }
+.triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.triple .cell { border-left: 4px solid var(--line); padding: 2px 0 2px 10px; }
+.triple .cell.h { border-color: var(--home); } .triple .cell.d { border-color: var(--draw); } .triple .cell.a { border-color: var(--away); }
+.triple .who { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.triple .pct { font-size: 30px; line-height: 1.05; }
+.triple .odds { font-size: 13px; color: var(--muted); }
+
+.market { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
+.market:first-of-type { border-top: 0; }
+.market .row { display: flex; justify-content: space-between; font-size: 15px; gap: 8px; }
+.market .row b { font-weight: 600; }
+.track { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--home); }
+.small { font-size: 13px; color: var(--muted); }
+
+.two { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .two { grid-template-columns: 1fr 1fr; } }
+.chips { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.chips li { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.chips .sc { font-size: 24px; line-height: 1; }
+
+.scroll { overflow-x: auto; }
+table.matrix { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 360px; text-align: center; font-size: 13px; }
+table.matrix th { font-weight: 600; color: var(--muted); padding: 4px; font-size: 12px; }
+table.matrix td { padding: 9px 2px; border-radius: 4px; background: rgba(var(--heat-rgb), var(--a, 0)); color: var(--ink); }
+table.matrix td.hot { color: #fff; }
+:root[data-theme="dark"] table.matrix td.hot { color: #06120C; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) table.matrix td.hot { color: #06120C; } }
+
+.stats { width: 100%; border-collapse: collapse; font-size: 14px; }
+.stats th, .stats td { padding: 6px 4px; text-align: right; border-top: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { border-top: 0; color: var(--muted); font-weight: 600; }
+
+footer.note { max-width: 1040px; margin: 0 auto; padding: 0 20px 30px; color: var(--muted); font-size: 13px; }
+header.top p.updated { margin: -10px 0 14px; font-size: 13px; }
+.mix { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: no-preference) { .track i, .stack div { transition: width .35s ease; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1 class="display">Probabilidades de fútbol</h1>
+    <p>Sube los resultados de una competencia, elige dos equipos y mira qué tan probable es cada desenlace.</p>
+    <p id="updated" class="updated" hidden></p>
+    <div class="tabs" role="tablist" aria-label="Competencia">
+      <button class="tab" role="tab" id="tab-liga" aria-selected="true" aria-controls="panel-liga" data-tab="liga">Liga</button>
+      <button class="tab" role="tab" id="tab-champions" aria-selected="false" aria-controls="panel-champions" data-tab="champions">Champions</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <section id="panel-liga" role="tabpanel" aria-labelledby="tab-liga"></section>
+    <section id="panel-champions" role="tabpanel" aria-labelledby="tab-champions" hidden></section>
+  </div>
+</main>
+
+<footer class="note">
+  Modelo de Poisson con datos históricos. No considera lesiones, sanciones, clima ni motivación. Son estimaciones de referencia, no garantías.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var K = 3; // "partidos de prior": suaviza equipos con pocos partidos
+  var MAXG = 10;
+
+  var CONFIG = {
+    liga: {
+      title: "Datos de la liga",
+      hint: "Descarga el CSV de la liga desde football-data.co.uk y súbelo aquí. Puedes subir varias temporadas: empieza por la más antigua.",
+      last: "Sube un CSV de la liga para empezar"
+    },
+    champions: {
+      title: "Datos de la Champions",
+      hint: "Sube aquí el CSV de la Champions. Los partidos de liga de cada equipo se toman de la pestaña Liga: sube allá los CSV de las ligas (los nombres de equipos deben estar escritos igual).",
+      last: "Sube un CSV de la Champions para empezar"
+    }
+  };
+
+  /* ---------- Lectura de CSV ---------- */
+  function parseCSV(text) {
+    text = text.replace(/^\uFEFF/, "");
+    var firstLine = text.split(/\r?\n/)[0] || "";
+    var delim = (firstLine.split(";").length > firstLine.split(",").length) ? ";" : ",";
+    var rows = [], row = [], cell = "", inQ = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else { inQ = false; } }
+        else cell += c;
+      } else {
+        if (c === '"') inQ = true;
+        else if (c === delim) { row.push(cell); cell = ""; }
+        else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+        else if (c === "\r") { /* ignorar */ }
+        else cell += c;
+      }
+    }
+    if (cell.length || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (x) { return x.trim() !== ""; }); });
+  }
+
+  var HOME_NAMES = ["hometeam", "home_team", "home", "local", "equipo_local", "team1", "team_home", "hometeamname"];
+  var AWAY_NAMES = ["awayteam", "away_team", "away", "visita", "visitante", "equipo_visita", "equipo_visitante", "team2", "team_away", "awayteamname"];
+  var HG_NAMES = ["fthg", "hg", "home_goals", "homegoals", "home_score", "homescore", "goals_home", "goles_local", "score_home", "home_team_goals"];
+  var AG_NAMES = ["ftag", "ag", "away_goals", "awaygoals", "away_score", "awayscore", "goals_away", "goles_visita", "goles_visitante", "score_away", "away_team_goals"];
+  var SCORE_NAMES = ["score", "ft", "result", "resultado", "marcador"];
+
+  function findCol(header, names) {
+    for (var n = 0; n < names.length; n++) {
+      var idx = header.indexOf(names[n]);
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  }
+
+  function extractMatches(text) {
+    var rows = parseCSV(text);
+    if (rows.length < 2) throw new Error("El archivo está vacío o no tiene filas de partidos.");
+    var header = rows[0].map(function (h) { return h.trim().toLowerCase().replace(/\s+/g, "_"); });
+    var ih = findCol(header, HOME_NAMES), ia = findCol(header, AWAY_NAMES);
+    var ihg = findCol(header, HG_NAMES), iag = findCol(header, AG_NAMES);
+    var isc = (ihg === -1 || iag === -1) ? findCol(header, SCORE_NAMES) : -1;
+    if (ih === -1 || ia === -1 || ((ihg === -1 || iag === -1) && isc === -1)) {
+      throw new Error("No encontré las columnas necesarias (equipo local, equipo visita y goles de cada uno). Los archivos de football-data.co.uk traen HomeTeam, AwayTeam, FTHG y FTAG.");
+    }
+    var out = [];
+    for (var r = 1; r < rows.length; r++) {
+      var row = rows[r];
+      var h = (row[ih] || "").trim(), a = (row[ia] || "").trim();
+      var hg, ag;
+      if (isc !== -1) {
+        var m = /(\d+)\s*[-:–]\s*(\d+)/.exec(row[isc] || "");
+        if (!m) continue;
+        hg = parseInt(m[1], 10); ag = parseInt(m[2], 10);
+      } else {
+        hg = parseInt(row[ihg], 10); ag = parseInt(row[iag], 10);
+      }
+      if (!h || !a || isNaN(hg) || isNaN(ag)) continue;
+      out.push({ h: h, a: a, hg: hg, ag: ag });
+    }
+    if (!out.length) throw new Error("Encontré las columnas, pero ninguna fila tiene un resultado válido.");
+    return out;
+  }
+
+  /* ---------- Modelo ---------- */
+  function poissonPmf(lambda) {
+    var p = [Math.exp(-lambda)];
+    for (var i = 1; i <= MAXG; i++) p.push(p[i - 1] * lambda / i);
+    return p;
+  }
+
+  function fileAvg(matches) {
+    var s = 0;
+    matches.forEach(function (m) { s += m.hg + m.ag; });
+    return Math.max(s / (2 * matches.length), 0.3);
+  }
+
+  // Une los partidos de varios archivos. Cada archivo tiene su propio promedio de goles (g),
+  // así los goles se miden "contra lo normal de esa competencia" y una liga goleadora no infla al equipo.
+  function buildPool(entries) {
+    var P = { recs: {}, all: { h: 0, a: 0, n: 0 }, own: { h: 0, a: 0, n: 0 }, hasLiga: false };
+    entries.forEach(function (e) {
+      if (e.liga) P.hasLiga = true;
+      var g = e.file.g;
+      e.file.matches.forEach(function (m) {
+        (P.recs[m.h] = P.recs[m.h] || []).push({ gf: m.hg, ga: m.ag, rf: m.hg / g, ra: m.ag / g, w: e.w, liga: e.liga });
+        (P.recs[m.a] = P.recs[m.a] || []).push({ gf: m.ag, ga: m.hg, rf: m.ag / g, ra: m.hg / g, w: e.w, liga: e.liga });
+        P.all.h += m.hg; P.all.a += m.ag; P.all.n++;
+        if (!e.liga) { P.own.h += m.hg; P.own.a += m.ag; P.own.n++; }
+      });
+    });
+    return P;
+  }
+
+  function strength(P, team, lastN) {
+    var arr = P.recs[team] || [];
+    if (lastN > 0) arr = arr.slice(-lastN);
+    var W = 0, F = 0, A = 0, gf = 0, ga = 0, nL = 0;
+    arr.forEach(function (x) {
+      W += x.w; F += x.w * x.rf; A += x.w * x.ra; gf += x.gf; ga += x.ga;
+      if (x.liga) nL++;
+    });
+    var n = arr.length;
+    return {
+      n: n, nLiga: nL, nOwn: n - nL,
+      gfpg: n ? gf / n : 0, gapg: n ? ga / n : 0,
+      att: (F + K) / (W + K),
+      def: (A + K) / (W + K)
+    };
+  }
+
+  function predict(P, home, away, lastN, neutral) {
+    // Nivel de goles: el de la competencia principal si hay suficientes partidos; si no, el de todos.
+    var ref = P.own.n >= 30 ? P.own : P.all;
+    var g = (ref.h + ref.a) / (2 * ref.n);
+    var muH = P.all.h / P.all.n, muA = P.all.a / P.all.n;
+    var f = neutral ? 1 : Math.sqrt(Math.max(muH, 0.1) / Math.max(muA, 0.1));
+    var sh = strength(P, home, lastN), sa = strength(P, away, lastN);
+    var lh = clamp(g * f * sh.att * sa.def, 0.15, 6);
+    var la = clamp((g / f) * sa.att * sh.def, 0.15, 6);
+
+    var ph = poissonPmf(lh), pa = poissonPmf(la);
+    var grid = [], total = 0, i, j;
+    for (i = 0; i <= MAXG; i++) { grid[i] = []; for (j = 0; j <= MAXG; j++) { grid[i][j] = ph[i] * pa[j]; total += grid[i][j]; } }
+    for (i = 0; i <= MAXG; i++) for (j = 0; j <= MAXG; j++) grid[i][j] /= total;
+
+    var win = 0, draw = 0, lose = 0, btts = 0, o15 = 0, o25 = 0, o35 = 0, list = [];
+    for (i = 0; i <= MAXG; i++) for (j = 0; j <= MAXG; j++) {
+      var p = grid[i][j];
+      if (i > j) win += p; else if (i === j) draw += p; else lose += p;
+      if (i > 0 && j > 0) btts += p;
+      if (i + j > 1) o15 += p;
+      if (i + j > 2) o25 += p;
+      if (i + j > 3) o35 += p;
+      list.push({ h: i, a: j, p: p });
+    }
+    list.sort(function (x, y) { return y.p - x.p; });
+    return { lh: lh, la: la, grid: grid, win: win, draw: draw, lose: lose, btts: btts, o15: o15, o25: o25, o35: o35, top: list.slice(0, 5), sh: sh, sa: sa, N: ref.n, g: g };
+  }
+
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+  function pct(p) { return (p * 100).toFixed(1).replace(/\.0$/, "") + "%"; }
+  function odds(p) { return p > 0.0005 ? (1 / p).toFixed(2) : "—"; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
+
+  /* ---------- Datos de ejemplo (inventados) ---------- */
+  function demoMatches() {
+    var teams = [
+      ["Club Alfa", 1.5, 0.7], ["Deportivo Bravo", 1.3, 0.9], ["Atlético Cóndor", 1.2, 1.0], ["Unión Delta", 1.1, 1.0],
+      ["Real Eco", 1.0, 1.1], ["Sporting Fénix", 0.9, 1.2], ["Racing Gamma", 0.8, 1.3], ["Estrella Halcón", 0.7, 1.5]
+    ];
+    var seed = 12345;
+    function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+    function pois(l) { var L = Math.exp(-l), k = 0, p = 1; do { k++; p *= rnd(); } while (p > L); return k - 1; }
+    var out = [];
+    for (var round = 0; round < 2; round++)
+      teams.forEach(function (t, i) {
+        teams.forEach(function (u, j) {
+          if (i === j) return;
+          out.push({ h: t[0], a: u[0], hg: pois(1.35 * t[1] * u[2]), ag: pois(1.05 * u[1] * t[2]) });
+        });
+      });
+    return out;
+  }
+
+  /* ---------- Panel ---------- */
+  var panels = {};
+
+  function createPanel(key) {
+    var cfg = CONFIG[key];
+    var root = document.getElementById("panel-" + key);
+    var isChamp = key === "champions";
+    var state = { files: [], pool: null };
+
+    root.innerHTML =
+      '<div class="layout">' +
+        '<div class="box controls">' +
+          '<h2 class="display">' + cfg.title + '</h2>' +
+          '<p class="hint">' + cfg.hint + '</p>' +
+          '<div class="btnrow">' +
+            '<label class="btn primary" for="file-' + key + '">Subir CSV</label>' +
+            '<input type="file" id="file-' + key + '" accept=".csv,text/csv,text/plain" multiple>' +
+            '<button class="btn ghost" type="button" data-act="demo">Probar con ejemplo</button>' +
+          '</div>' +
+          '<ul class="files" data-el="files"></ul>' +
+          '<div class="mix"' + (isChamp ? '' : ' hidden') + '>' +
+            '<label class="checkrow" style="margin-top:0"><input type="checkbox" data-el="incl" checked> Incluir los partidos de la pestaña Liga</label>' +
+            '<p class="small" data-el="ligaInfo" style="margin:6px 0 10px"></p>' +
+            '<label class="label" for="w-' + key + '">Peso de los partidos de liga</label>' +
+            '<select id="w-' + key + '" data-el="ligaW">' +
+              '<option value="1">100% (igual que la Champions)</option>' +
+              '<option value="0.75">75%</option>' +
+              '<option value="0.5" selected>50% (recomendado)</option>' +
+              '<option value="0.25">25%</option>' +
+            '</select>' +
+          '</div>' +
+          '<p class="msg" data-el="msg" hidden></p>' +
+          '<div class="step" data-el="pickers" hidden>' +
+            '<label class="label" for="home-' + key + '">Equipo local</label>' +
+            '<select id="home-' + key + '" data-el="home"></select>' +
+            '<div style="height:12px"></div>' +
+            '<label class="label" for="away-' + key + '">Equipo visita</label>' +
+            '<select id="away-' + key + '" data-el="away"></select>' +
+            '<div style="height:12px"></div>' +
+            '<label class="label" for="last-' + key + '">Partidos que se usan por equipo</label>' +
+            '<select id="last-' + key + '" data-el="last">' +
+              '<option value="0">Todos los que haya</option>' +
+              '<option value="10">Últimos 10</option>' +
+              '<option value="20">Últimos 20</option>' +
+            '</select>' +
+            '<label class="checkrow"><input type="checkbox" data-el="neutral"> Cancha neutral (sin ventaja de local)</label>' +
+          '</div>' +
+        '</div>' +
+        '<div data-el="out"></div>' +
+      '</div>';
+
+    var $ = function (name) { return root.querySelector('[data-el="' + name + '"]'); };
+    var out = $("out");
+
+    function showEmpty() {
+      out.innerHTML = '<div class="box empty"><div class="display">' + esc(cfg.last) + '</div><div>Después elige los dos equipos y verás las probabilidades aquí.</div></div>';
+    }
+
+    function setMsg(text) {
+      var m = $("msg");
+      if (text) { m.textContent = text; m.hidden = false; } else { m.hidden = true; }
+    }
+
+    function entries() {
+      var arr = [];
+      if (isChamp && $("incl").checked && panels.liga) {
+        var w = parseFloat($("ligaW").value);
+        if (isNaN(w)) w = 0.5;
+        panels.liga.state.files.forEach(function (f) { arr.push({ file: f, w: w, liga: true }); });
+      }
+      state.files.forEach(function (f) { arr.push({ file: f, w: 1, liga: false }); });
+      return arr;
+    }
+
+    function optionsHtml(names) {
+      function o(n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }
+      if (!isChamp) return names.map(o).join("");
+      var own = {};
+      state.files.forEach(function (f) { f.matches.forEach(function (m) { own[m.h] = 1; own[m.a] = 1; }); });
+      var a = names.filter(function (n) { return own[n]; });
+      var b = names.filter(function (n) { return !own[n]; });
+      if (!a.length || !b.length) return names.map(o).join("");
+      return '<optgroup label="En la Champions">' + a.map(o).join("") + '</optgroup>' +
+             '<optgroup label="Solo en los datos de liga">' + b.map(o).join("") + '</optgroup>';
+    }
+
+    function updateInfo() {
+      if (!isChamp) return;
+      var lf = panels.liga ? panels.liga.state.files : [];
+      var n = 0;
+      lf.forEach(function (f) { n += f.matches.length; });
+      $("ligaInfo").textContent = lf.length
+        ? "En la pestaña Liga hay " + lf.length + (lf.length === 1 ? " archivo" : " archivos") + " con " + n + " partidos."
+        : "Todavía no subes nada en la pestaña Liga. Sube ahí los CSV de las ligas de los equipos.";
+    }
+
+    function rebuildSelf() {
+      updateInfo();
+      state.pool = buildPool(entries());
+      var names = Object.keys(state.pool.recs).sort(function (a, b) { return a.localeCompare(b); });
+      var prevH = $("home").value, prevA = $("away").value;
+
+      var list = $("files");
+      list.innerHTML = "";
+      state.files.forEach(function (f, i) {
+        var li = document.createElement("li");
+        li.innerHTML = '<span class="name">' + esc(f.name) + ' <span class="count">· ' + f.matches.length + ' partidos</span></span>' +
+          '<button type="button" aria-label="Quitar ' + esc(f.name) + '" data-rm="' + i + '">×</button>';
+        list.appendChild(li);
+      });
+
+      var pick = $("pickers");
+      if (!names.length) { pick.hidden = true; showEmpty(); return; }
+      pick.hidden = false;
+      var html = optionsHtml(names);
+      $("home").innerHTML = html; $("away").innerHTML = html;
+      var ops = $("home").options;
+      $("home").value = names.indexOf(prevH) !== -1 ? prevH : ops[0].value;
+      $("away").value = names.indexOf(prevA) !== -1 ? prevA : (ops[1] ? ops[1].value : ops[0].value);
+      render();
+    }
+
+    function rebuild() {
+      rebuildSelf();
+      if (key === "liga" && panels.champions) panels.champions.refresh();
+    }
+
+    function render() {
+      var home = $("home").value, away = $("away").value;
+      setMsg("");
+      if (!home || !away) return;
+      if (home === away) {
+        out.innerHTML = '<div class="box empty"><div class="display">Elige dos equipos distintos</div><div>Ahora mismo el local y la visita son el mismo equipo.</div></div>';
+        return;
+      }
+      var lastN = parseInt($("last").value, 10) || 0;
+      var neutral = $("neutral").checked;
+      var r = predict(state.pool, home, away, lastN, neutral);
+      var mixed = isChamp && state.pool.hasLiga;
+
+      var warn = [], few = false;
+      if (r.sh.n < 8) { warn.push(home + " tiene solo " + r.sh.n + " partidos en los datos."); few = true; }
+      if (r.sa.n < 8) { warn.push(away + " tiene solo " + r.sa.n + " partidos en los datos."); few = true; }
+      if (mixed) {
+        [[home, r.sh], [away, r.sa]].forEach(function (x) {
+          if (x[1].nLiga === 0) warn.push(x[0] + " no aparece en los CSV de liga: revisa que el nombre esté escrito igual o sube el CSV de su liga.");
+        });
+      }
+      if (warn.length) setMsg(warn.join(" ") + (few ? " Con tan pocos partidos las probabilidades son menos confiables." : ""));
+
+      var markets = [
+        ["Más de 1.5 goles", r.o15, "Menos de 1.5"],
+        ["Más de 2.5 goles", r.o25, "Menos de 2.5"],
+        ["Más de 3.5 goles", r.o35, "Menos de 3.5"],
+        ["Ambos equipos anotan", r.btts, "No anotan ambos"]
+      ].map(function (m) {
+        return '<div class="market"><div class="row"><span><b>' + m[0] + '</b> ' + pct(m[1]) + '</span><span class="small">' + m[2] + ' ' + pct(1 - m[1]) + '</span></div>' +
+          '<div class="track" role="img" aria-label="' + m[0] + ' ' + pct(m[1]) + '"><i style="width:' + (m[1] * 100).toFixed(1) + '%"></i></div></div>';
+      }).join("");
+
+      var top = r.top.map(function (s) {
+        return '<li><span class="sc display">' + s.h + ' - ' + s.a + '</span><span>' + pct(s.p) + '</span></li>';
+      }).join("");
+
+      var maxP = r.top[0].p;
+      var size = 6, head = '<tr><th></th>';
+      for (var j = 0; j < size; j++) head += '<th>' + j + '</th>';
+      head += '</tr>';
+      var body = "";
+      for (var i = 0; i < size; i++) {
+        body += '<tr><th>' + i + '</th>';
+        for (var k = 0; k < size; k++) {
+          var p = r.grid[i][k], a = (0.08 + 0.92 * (p / maxP)).toFixed(2);
+          body += '<td class="' + (p / maxP > 0.55 ? 'hot' : '') + '" style="--a:' + a + '">' + (p * 100).toFixed(1) + '</td>';
+        }
+        body += '</tr>';
+      }
+
+      function row(name, s) {
+        return '<tr><td>' + esc(name) + '</td><td>' + s.n + '</td>' +
+          (mixed ? '<td>' + s.nOwn + '</td><td>' + s.nLiga + '</td>' : '') +
+          '<td>' + s.gfpg.toFixed(2) + '</td><td>' + s.gapg.toFixed(2) + '</td></tr>';
+      }
+      var thead = '<tr><th>Equipo</th><th>Partidos</th>' + (mixed ? '<th>Champions</th><th>Liga</th>' : '') + '<th>Goles a favor</th><th>Goles en contra</th></tr>';
+      var wPct = Math.round((parseFloat($("ligaW").value) || 0.5) * 100);
+      var note = 'Promedio de la base: ' + r.g.toFixed(2) + ' goles por equipo y partido, sobre ' + r.N + ' partidos. Goles a favor y en contra son por partido.';
+      if (mixed) {
+        note += ' Los partidos de liga cuentan al ' + wPct + '% y cada archivo se compara contra su propio promedio de goles. Aun así, el modelo no sabe qué liga es más fuerte que otra.';
+      }
+
+      out.innerHTML =
+        '<div class="results">' +
+          '<div class="board display">' +
+            '<div class="team home">' + esc(home) + '</div>' +
+            '<div class="xg"><div class="nums">' + r.lh.toFixed(2) + ' : ' + r.la.toFixed(2) + '</div><div class="cap" style="font-family:Barlow,sans-serif;font-weight:400">goles esperados</div></div>' +
+            '<div class="team away">' + esc(away) + '</div>' +
+          '</div>' +
+
+          '<div class="box"><h2 class="display">Quién gana</h2>' +
+            '<div class="stack" role="img" aria-label="Probabilidades de victoria local, empate y victoria visita">' +
+              '<div class="seg-home" style="width:' + (r.win * 100).toFixed(2) + '%">' + (r.win > 0.09 ? Math.round(r.win * 100) + '%' : '') + '</div>' +
+              '<div class="seg-draw" style="width:' + (r.draw * 100).toFixed(2) + '%">' + (r.draw > 0.09 ? Math.round(r.draw * 100) + '%' : '') + '</div>' +
+              '<div class="seg-away" style="width:' + (r.lose * 100).toFixed(2) + '%">' + (r.lose > 0.09 ? Math.round(r.lose * 100) + '%' : '') + '</div>' +
+            '</div>' +
+            '<div class="triple">' +
+              '<div class="cell h"><div class="who">Gana ' + esc(home) + '</div><div class="pct display">' + pct(r.win) + '</div><div class="odds">cuota justa ' + odds(r.win) + '</div></div>' +
+              '<div class="cell d"><div class="who">Empate</div><div class="pct display">' + pct(r.draw) + '</div><div class="odds">cuota justa ' + odds(r.draw) + '</div></div>' +
+              '<div class="cell a"><div class="who">Gana ' + esc(away) + '</div><div class="pct display">' + pct(r.lose) + '</div><div class="odds">cuota justa ' + odds(r.lose) + '</div></div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="two">' +
+            '<div class="box"><h2 class="display">Goles</h2>' + markets + '</div>' +
+            '<div class="box"><h2 class="display">Marcadores más probables</h2><ul class="chips">' + top + '</ul></div>' +
+          '</div>' +
+
+          '<div class="box"><h2 class="display">Todos los marcadores</h2>' +
+            '<p class="hint">Filas: goles de ' + esc(home) + '. Columnas: goles de ' + esc(away) + '. Cada casilla es el porcentaje de ese marcador exacto.</p>' +
+            '<div class="scroll"><table class="matrix" aria-label="Probabilidad de cada marcador">' + head + body + '</table></div>' +
+          '</div>' +
+
+          '<div class="box"><h2 class="display">Datos usados</h2>' +
+            '<div class="scroll"><table class="stats"><thead>' + thead + '</thead><tbody>' +
+              row(home, r.sh) + row(away, r.sa) +
+            '</tbody></table></div>' +
+            '<p class="small" style="margin:10px 0 0">' + note + '</p>' +
+          '</div>' +
+        '</div>';
+    }
+
+    /* eventos */
+    root.querySelector('input[type=file]').addEventListener("change", function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      if (!files.length) return;
+      var errors = [], pending = files.length;
+      files.forEach(function (file) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var matches = extractMatches(String(reader.result));
+            state.files.push({ name: file.name, matches: matches, g: fileAvg(matches) });
+          } catch (err) { errors.push(file.name + ": " + err.message); }
+          if (--pending === 0) { rebuild(); if (errors.length) setMsg(errors.join(" ")); }
+        };
+        reader.onerror = function () {
+          errors.push(file.name + ": no se pudo leer el archivo.");
+          if (--pending === 0) { rebuild(); setMsg(errors.join(" ")); }
+        };
+        reader.readAsText(file);
+      });
+      e.target.value = "";
+    });
+
+    root.addEventListener("click", function (e) {
+      var t = e.target;
+      if (t.getAttribute && t.getAttribute("data-act") === "demo") {
+        var dm = demoMatches();
+        state.files.push({ name: "Ejemplo inventado (8 equipos ficticios)", matches: dm, g: fileAvg(dm) });
+        rebuild();
+      }
+      var rm = t.getAttribute && t.getAttribute("data-rm");
+      if (rm !== null && rm !== undefined && rm !== "") {
+        state.files.splice(parseInt(rm, 10), 1);
+        rebuild();
+      }
+    });
+    ["home", "away", "last", "neutral"].forEach(function (n) { $(n).addEventListener("change", render); });
+    ["incl", "ligaW"].forEach(function (n) { $(n).addEventListener("change", rebuild); });
+
+    panels[key] = { state: state, refresh: rebuildSelf };
+    updateInfo();
+    showEmpty();
+  }
+
+  createPanel("liga");
+  createPanel("champions");
+
+  /* ---------- Carga automática (cuando la web está alojada junto a la carpeta data/) ---------- */
+  (function loadAuto() {
+    if (!window.fetch) return;
+    fetch("data/manifest.json", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("sin datos automáticos"); return r.json(); })
+      .then(function (man) {
+        var jobs = (man.files || []).map(function (def) {
+          return fetch("data/" + def.file, { cache: "no-store" })
+            .then(function (r) { if (!r.ok) throw new Error("no se pudo leer " + def.file); return r.text(); })
+            .then(function (t) {
+              var matches = extractMatches(t);
+              return { def: def, file: { name: def.name + " (automático)", matches: matches, g: fileAvg(matches) } };
+            })
+            .catch(function () { return null; });
+        });
+        return Promise.all(jobs).then(function (res) {
+          var any = false;
+          res.forEach(function (x) {
+            if (x && panels[x.def.tab]) { panels[x.def.tab].state.files.push(x.file); any = true; }
+          });
+          if (!any) return;
+          panels.liga.refresh();
+          panels.champions.refresh();
+          var d = new Date(man.updated);
+          var el = document.getElementById("updated");
+          if (man.updated && !isNaN(d.getTime())) {
+            el.textContent = "Datos actualizados: " + d.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" });
+            el.hidden = false;
+          }
+        });
+      })
+      .catch(function () { /* sin datos automáticos: queda la carga manual */ });
+  })();
+
+  /* ---------- Pestañas ---------- */
+  var tabs = document.querySelectorAll(".tab");
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      var key = tab.getAttribute("data-tab");
+      tabs.forEach(function (t) { t.setAttribute("aria-selected", t === tab ? "true" : "false"); });
+      document.getElementById("panel-liga").hidden = key !== "liga";
+      document.getElementById("panel-champions").hidden = key !== "champions";
+    });
+  });
+})();
+</script>
+</body>
+</html>
